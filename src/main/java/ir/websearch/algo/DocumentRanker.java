@@ -1,5 +1,8 @@
 package ir.websearch.algo;
 
+import ir.websearch.algo.helper.InputParams;
+import ir.websearch.algo.helper.InputParams.Parser;
+
 public class DocumentRanker {
 
 	public static void main(String[] args) {
@@ -9,8 +12,15 @@ public class DocumentRanker {
 			return;
 		}
 		
+		String fileName = args[0];
+		Parser inputParser = new Parser(fileName);
+		InputParams inputParams = inputParser.parse();
+		if (inputParams == null) {
+			System.out.println("Faild to load parameter file name: " + fileName + ".");
+			return;
+		}
 		
-
+		
 	}
 
 }
