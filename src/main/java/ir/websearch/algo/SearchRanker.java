@@ -1,9 +1,11 @@
 package ir.websearch.algo;
 
+import java.util.Collection;
+
 import ir.websearch.algo.helper.InputParams;
 import ir.websearch.algo.helper.InputParams.Parser;
 
-public class DocumentRanker {
+public class SearchRanker {
 
 	public static void main(String[] args) {
 		if (args.length != 1) {
@@ -20,6 +22,12 @@ public class DocumentRanker {
 			return;
 		}
 		
+		DocumentsParser docsParser = new DocumentsParser(inputParams.getDocsFileName());
+		Collection<Document> docs = docsParser.parse();
+		if (docs == null) {
+			System.out.println("Faild to load document file name: " + inputParams.getDocsFileName() + ".");
+			return;
+		}
 		
 	}
 

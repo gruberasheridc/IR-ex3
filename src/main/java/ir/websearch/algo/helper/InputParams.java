@@ -7,10 +7,10 @@ import java.io.IOException;
 
 public class InputParams {
 
-	private String queryFileName;
-	private String docsFileName;
-	private String outputFileName;
-	private String retrievalAlgorithm;
+	private final String queryFileName;
+	private final String docsFileName;
+	private final String outputFileName;
+	private final String retrievalAlgorithm;
 
 	public String getQueryFileName() {
 		return queryFileName;
@@ -72,7 +72,6 @@ public class InputParams {
 				if (isInputValid()) {
 					inputParams = new InputParams(this);
 				}				
-			} catch (FileNotFoundException e) {
 			} catch (IOException e) {
 			} finally {
 				if (reader != null) {
