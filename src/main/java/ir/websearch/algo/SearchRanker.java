@@ -7,10 +7,16 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
-import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 
@@ -66,6 +72,30 @@ public class SearchRanker {
 		} catch (IOException e) {
 			// TODO handle exception block.
 			e.printStackTrace();
+		}
+
+		// Generate lucene queries and execute search.
+		int hitsPerPage = 10;
+		for (Query query : queries) {
+			QueryParser parser = new QueryParser("title", analyzer);
+			try {
+				org.apache.lucene.search.Query q = parser.parse(query.getQuery());
+				IndexReader idxReader = DirectoryReader.open(index);
+				IndexSearcher searcher = new IndexSearcher(idxReader);
+				TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
+				searcher.search(q, collector);
+				ScoreDoc[] hits = collector.topDocs().scoreDocs;
+
+				System.out.println("Found " + hits.length + " hits.");
+				for (int i=0;i<hits.length;++i) {
+					int docId = hits[i].doc;
+					org.apache.lucene.document.Document document = searcher.doc(docId);
+					System.out.println((i + 1) + ". " + document.get("id") + "\t" + document.get("title") + document.get("abstruct"));
+				}
+			} catch (ParseException | IOException e) {
+				// TODO handle exception block.
+				e.printStackTrace();
+			}
 		}
 
 	}
