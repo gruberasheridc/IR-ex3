@@ -1,14 +1,14 @@
 package ir.websearch.algo;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -16,9 +16,13 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -26,6 +30,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.util.BytesRef;
 
 import ir.websearch.algo.doc.Document;
 import ir.websearch.algo.doc.DocumentsParser;
@@ -81,6 +86,9 @@ public class SearchRanker {
 			// TODO handle exception block.
 			e.printStackTrace();
 		}
+		
+		// Calculate stop words from the indexed document collection.
+		//calcTopStopWords(index);
 
 		// Generate lucene queries and execute search.
 		int hitsPerPage = 10;
@@ -124,6 +132,29 @@ public class SearchRanker {
 		Path outputPath = Paths.get(inputParams.getOutputFileName());
 		try {
 			Files.write(outputPath, outputOfAllQueries);
+		} catch (IOException e) {
+			// TODO handle catch block
+			e.printStackTrace();
+		}
+	}
+
+	private static void calcTopStopWords(Directory index) {
+		final Map<String,Integer> frequencyMap = 
+			      new HashMap<String,Integer>();
+	    List<String> termlist = new ArrayList<String>();
+	    
+	    try (IndexReader idxReader = DirectoryReader.open(index)) {
+			Fields fields = MultiFields.getFields(idxReader);
+	        Terms terms = fields.terms("title");
+	        TermsEnum iterator = terms.iterator();
+	        BytesRef byteRef = null;
+	        while((byteRef = iterator.next()) != null) {
+	        	String term = byteRef.utf8ToString();
+	            int df = iterator.docFreq();
+	            frequencyMap.put(term, df);
+	            termlist.add(term);
+	        }
+	        
 		} catch (IOException e) {
 			// TODO handle catch block
 			e.printStackTrace();
