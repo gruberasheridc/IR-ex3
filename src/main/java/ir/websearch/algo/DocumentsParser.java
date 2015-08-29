@@ -1,12 +1,12 @@
 package ir.websearch.algo;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 
+import ir.websearch.algo.Document.Builder;
 import ir.websearch.algo.helper.StringUtils;
 
 public class DocumentsParser {
@@ -14,9 +14,6 @@ public class DocumentsParser {
 	private static final String DOC_SEPERATOR = new String(new char[] { 127 });
 	private static final String DOC_PREFIX = ".I";
 	private static final String TEXT_PREFIX = ".W";
-	private static final String OPEN_PARAM_TOKEN = "OPEN_TOKEN";
-	private static final String CLOSE_PARAM_TOKEN = "CLOSE_PARAM_TOKEN";
-	private static final String PARAM_REGEX_PATTERN = ".*" + OPEN_PARAM_TOKEN + "(.*?)" + CLOSE_PARAM_TOKEN;
 	
 	private final String docsFile;
 	
@@ -25,7 +22,7 @@ public class DocumentsParser {
 	}
 	
 	public Collection<Document> parse() {
-		Collection<Document> documents = null;
+		Collection<Document> documents = new ArrayList<>();
 
 		File file = new File(docsFile);
 		try {
@@ -33,11 +30,25 @@ public class DocumentsParser {
 			docsJoin = docsJoin.replace(DOC_PREFIX, DOC_SEPERATOR);
 			String[] docs = docsJoin.split("(?=" + DOC_SEPERATOR + ")");
 			for (String doc : docs) {
-				String docId =  doc.split(TEXT_PREFIX)[0];
-				Integer docID = Integer.parseInt(StringUtils.findRegexFirstMatch("\\d+", docId));
-				System.out.println(docId);
+				Document.Builder docBuilder = new Builder();
+				String[] idTextSplit =  doc.split(TEXT_PREFIX);
+				String docIDPart = idTextSplit[0];
+				Integer docID = Integer.parseInt(StringUtils.findRegexFirstMatch("\\d+", docIDPart));
+				docBuilder.id(docID);
+				
+				String textPart = idTextSplit[1];
+				String[] titelAbstructSplit = textPart.split("\\.", 2);
+				String title = titelAbstructSplit[0];
+				docBuilder.title(title);
+				
+				String abst = titelAbstructSplit[1];
+				docBuilder.abst(abst);
+				
+				documents.add(docBuilder.build());
 			}
-		} catch (IOException e) {}
+		} catch (Exception e) {
+			documents = null;
+		}
 		
 		return documents;
 	}
