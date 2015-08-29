@@ -1,4 +1,4 @@
-package ir.websearch.algo;
+package ir.websearch.algo.doc;
 
 public class Document {
 

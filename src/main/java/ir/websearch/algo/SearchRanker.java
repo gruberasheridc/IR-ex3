@@ -2,6 +2,8 @@ package ir.websearch.algo;
 
 import java.util.Collection;
 
+import ir.websearch.algo.doc.Document;
+import ir.websearch.algo.doc.DocumentsParser;
 import ir.websearch.algo.helper.InputParams;
 import ir.websearch.algo.helper.InputParams.Parser;
 

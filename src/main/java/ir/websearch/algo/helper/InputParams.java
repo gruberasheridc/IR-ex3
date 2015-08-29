@@ -1,7 +1,6 @@
 package ir.websearch.algo.helper;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
@@ -31,7 +30,7 @@ public class InputParams {
 	public static class Parser {
 
 		private static final String RETRIEVAL_ALGORITHM_KEY = "retrievalAlgorithm";
-		private static final String OUTPOT_FILE_KEY = "outpotFile";
+		private static final String OUTPUT_FILE_KEY = "outputFile";
 		private static final String DOCS_FILE_KEY = "docsFile";
 		private static final String QUERY_FILE_KEY = "queryFile";
 		
@@ -61,7 +60,7 @@ public class InputParams {
 					}
 					
 					if (outputFileName == null) {
-						outputFileName = getParamByKey(line, OUTPOT_FILE_KEY);
+						outputFileName = getParamByKey(line, OUTPUT_FILE_KEY);
 					}
 					
 					if (retrievalAlgorithm == null) {
