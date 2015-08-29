@@ -3,14 +3,13 @@ package ir.websearch.algo;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.regex.Matcher;
 
 import org.apache.commons.io.FileUtils;
 
 public class DocumentsParser {
 	
 	private static final String DOC_SEPERATOR = new String(new char[] { 127 });
-	private static final String DOC_PREFIX = Matcher.quoteReplacement(".I");	
+	private static final String DOC_PREFIX = ".I";	
 	
 	private final String docsFile;
 	
