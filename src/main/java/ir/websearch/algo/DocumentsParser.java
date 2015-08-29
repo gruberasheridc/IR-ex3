@@ -22,7 +22,7 @@ public class DocumentsParser {
 	}
 	
 	public Collection<Document> parse() {
-		Collection<Document> documents = new ArrayList<>();
+		Collection<Document> documents = new ArrayList<Document>();
 
 		File file = new File(docsFile);
 		try {
