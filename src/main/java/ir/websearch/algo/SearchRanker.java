@@ -9,6 +9,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -88,7 +90,7 @@ public class SearchRanker {
 		}
 		
 		// Calculate stop words from the indexed document collection.
-		//calcTopStopWords(index);
+		Set<String> stopWords = calcTopStopWords(index, 20);
 
 		// Generate lucene queries and execute search.
 		int hitsPerPage = 10;
@@ -138,27 +140,33 @@ public class SearchRanker {
 		}
 	}
 
-	private static void calcTopStopWords(Directory index) {
-		final Map<String,Integer> frequencyMap = 
-			      new HashMap<String,Integer>();
-	    List<String> termlist = new ArrayList<String>();
+	private static Set<String> calcTopStopWords(Directory index, int top) {
+		final Map<String, Integer> frequencyMap = new HashMap<String, Integer>();
 	    
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
 			Fields fields = MultiFields.getFields(idxReader);
-	        Terms terms = fields.terms("title");
+	        Terms terms = fields.terms("abstruct");
 	        TermsEnum iterator = terms.iterator();
 	        BytesRef byteRef = null;
 	        while((byteRef = iterator.next()) != null) {
 	        	String term = byteRef.utf8ToString();
 	            int df = iterator.docFreq();
 	            frequencyMap.put(term, df);
-	            termlist.add(term);
-	        }
-	        
+	        }	        
 		} catch (IOException e) {
 			// TODO handle catch block
 			e.printStackTrace();
 		}
+	    
+	    // Get the top stop words by document frequency.
+	    Set<String> stopWords = frequencyMap.entrySet().stream()
+	    			.sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+	    			.filter(entry -> entry.getValue() > 1) // In case we do not have top words with frequency above 1 return a smaller list.
+	    			.map(entry -> entry.getKey())
+	    			.limit(top)
+	    			.collect(Collectors.toSet());
+	    
+	    return stopWords;
 	}
 
 	/**
