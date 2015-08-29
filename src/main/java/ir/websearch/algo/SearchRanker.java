@@ -87,10 +87,13 @@ public class SearchRanker {
 				ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
 				System.out.println("Found " + hits.length + " hits.");
-				for (int i=0;i<hits.length;++i) {
-					int docId = hits[i].doc;
+				for (ScoreDoc scoreDoc : hits) {
+					int docId = scoreDoc.doc;					
+					float score = scoreDoc.score;
 					org.apache.lucene.document.Document document = searcher.doc(docId);
-					System.out.println((i + 1) + ". " + document.get("id") + "\t" + document.get("title") + document.get("abstruct"));
+					System.out.println("DocID: " + docId + "\t" + "Doc Score: " + score + "\t" + 
+									   "DocID: " + document.get("id") + "\t" + "Doc Title: " + document.get("title") + "\t" + 
+									   "Doc Abstruct: " + document.get("abstruct"));
 				}
 			} catch (ParseException | IOException e) {
 				// TODO handle exception block.
