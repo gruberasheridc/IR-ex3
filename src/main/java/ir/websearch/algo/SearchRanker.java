@@ -6,6 +6,8 @@ import ir.websearch.algo.doc.Document;
 import ir.websearch.algo.doc.DocumentsParser;
 import ir.websearch.algo.helper.InputParams;
 import ir.websearch.algo.helper.InputParams.Parser;
+import ir.websearch.algo.query.QueriesParser;
+import ir.websearch.algo.query.Query;
 
 public class SearchRanker {
 
@@ -28,6 +30,13 @@ public class SearchRanker {
 		Collection<Document> docs = docsParser.parse();
 		if (docs == null) {
 			System.out.println("Faild to load document file name: " + inputParams.getDocsFileName() + ".");
+			return;
+		}
+		
+		QueriesParser queriesParser = new QueriesParser(inputParams.getQueryFileName());
+		Collection<Query> queries = queriesParser.parse();
+		if (queries == null) {
+			System.out.println("Faild to load queries file name: " + inputParams.getQueryFileName() + ".");
 			return;
 		}
 		
