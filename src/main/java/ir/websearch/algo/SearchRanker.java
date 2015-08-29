@@ -1,7 +1,14 @@
 package ir.websearch.algo;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -22,6 +29,7 @@ import org.apache.lucene.store.RAMDirectory;
 
 import ir.websearch.algo.doc.Document;
 import ir.websearch.algo.doc.DocumentsParser;
+import ir.websearch.algo.helper.CollectionUtils;
 import ir.websearch.algo.helper.InputParams;
 import ir.websearch.algo.helper.InputParams.Parser;
 import ir.websearch.algo.query.QueriesParser;
@@ -76,9 +84,11 @@ public class SearchRanker {
 
 		// Generate lucene queries and execute search.
 		int hitsPerPage = 10;
+		List<String> outputOfAllQueries = new ArrayList<String>();
 		for (Query query : queries) {
-			QueryParser parser = new QueryParser("title", analyzer);
+			List<String> queryOutput = new ArrayList<String>();			
 			try {
+				QueryParser parser = new QueryParser("title", analyzer);
 				org.apache.lucene.search.Query q = parser.parse(query.getQuery());
 				IndexReader idxReader = DirectoryReader.open(index);
 				IndexSearcher searcher = new IndexSearcher(idxReader);
@@ -86,7 +96,7 @@ public class SearchRanker {
 				searcher.search(q, collector);
 				ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
-				System.out.println("Found " + hits.length + " hits.");
+				System.out.println("Found " + hits.length + " hits.");								
 				for (ScoreDoc scoreDoc : hits) {
 					int docId = scoreDoc.doc;					
 					float score = scoreDoc.score;
@@ -94,13 +104,30 @@ public class SearchRanker {
 					System.out.println("DocID: " + docId + "\t" + "Doc Score: " + score + "\t" + 
 									   "DocID: " + document.get("id") + "\t" + "Doc Title: " + document.get("title") + "\t" + 
 									   "Doc Abstruct: " + document.get("abstruct"));
+					String outputLine = "q" + query.getId() + "," + "doc" + document.get("id") + "," + score;
+					queryOutput.add(outputLine);
 				}
 			} catch (ParseException | IOException e) {
 				// TODO handle exception block.
 				e.printStackTrace();
 			}
+			
+			if (CollectionUtils.isEmpty(queryOutput)) {
+				// No documents are retrieved for a query. Create dummy output.
+				String dummayOutputLine = "q" + query.getId() + "," + "dummy" + "," + 1;
+				queryOutput.add(dummayOutputLine);
+			}
+			
+			outputOfAllQueries.addAll(queryOutput);
 		}
-
+		
+		Path outputPath = Paths.get(inputParams.getOutputFileName());
+		try {
+			Files.write(outputPath, outputOfAllQueries);
+		} catch (IOException e) {
+			// TODO handle catch block
+			e.printStackTrace();
+		}
 	}
 
 	/**
