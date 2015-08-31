@@ -141,24 +141,6 @@ public class SearchRanker {
 			// TODO handle catch block
 			e.printStackTrace();
 		}
-		
-		Path truthPath = Paths.get("truth.txt");
-		try {
-			List<String> queryDocLines = Files.readAllLines(truthPath);
-			Map<Integer, List<Integer>> queryDocs = queryDocLines.stream()
-				.map (line -> {
-						String[] columns = line.split(" ");
-						Integer queryId = Integer.parseInt(columns[0]);
-						Integer docId = Integer.parseInt(columns[3]);
-						return new MutablePair<Integer, Integer>(queryId, docId);
-					})
-				.collect(Collectors.groupingBy(entry -> entry.getKey(), Collectors.mapping((MutablePair<Integer, Integer> entry) -> entry.getValue(), Collectors.toList())));
-			
-			System.out.println(queryDocs);
-		} catch (IOException e) {
-			// TODO handle catch block
-			e.printStackTrace();
-		}
 	}
 
 	private static Set<String> calcTopStopWords(Directory index, int top) {
