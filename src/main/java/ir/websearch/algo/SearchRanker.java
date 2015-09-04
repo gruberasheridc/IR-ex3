@@ -9,6 +9,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -147,7 +148,7 @@ public class SearchRanker {
 		}
 	}
 
-	private static Set<String> calcTopStopWords(Directory index, int top) {
+	private static Set<String> calcTopStopWordsSelf(Directory index, int top) {
 		final Map<String, Long> frequencyMap = new HashMap<>();
 	    
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
@@ -173,22 +174,22 @@ public class SearchRanker {
 	    			.limit(top)
 	    			.collect(Collectors.toSet());
 	    
+	    return stopWords;
+	}
+	
+	private static Set<String> calcTopStopWords(Directory index, int top) {
+		Set<String> stopWords = new HashSet<>(); 
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
 	    	TotalTermFreqComparator cmp = new HighFreqTerms.TotalTermFreqComparator();
 		    TermStats[] highFreqTerms = HighFreqTerms.getHighFreqTerms(idxReader, top, "abstruct", cmp);
-
-		    Map<String, Long> terms = new HashMap<>();
 		    for (TermStats ts : highFreqTerms) {
-		    	terms.put(ts.termtext.utf8ToString(), ts.totalTermFreq);
+		    	String term = ts.termtext.utf8ToString();
+				stopWords.add(term);
 		    }
-		    		    
-		    System.out.println(terms);
 		} catch (Exception e) {
 			// TODO handle catch block
 			e.printStackTrace();
 		}
-	    
-	    
 	    
 	    return stopWords;
 	}
