@@ -180,9 +180,11 @@ public class SearchRanker {
 
 		List<String> queryOutput = new ArrayList<String>();
 		List<ImmutablePair<Integer, Float>> sortedHits = sortSearchHits(searcher, scoreDocs);
+		int rank = 1;
 		for (ImmutablePair<Integer, Float> scoreDoc : sortedHits) {
-			String outputLine = "q" + query.getId() + "," + "doc" + scoreDoc.getKey() + "," + scoreDoc.getValue();
+			String outputLine = "q" + query.getId() + "," + "doc" + scoreDoc.getKey() + "," + rank + "," +scoreDoc.getValue();
 			queryOutput.add(outputLine);
+			rank++;
 		}
 		
 		if (CollectionUtils.isEmpty(queryOutput)) {
