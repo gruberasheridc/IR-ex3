@@ -1,6 +1,7 @@
 package ir.websearch.algo;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -92,8 +93,30 @@ public class SearchRanker {
 		// Index documents to lucene.
 		Analyzer indexAnalyzer = new StandardAnalyzer();
 		Directory index = new RAMDirectory();
-		IndexWriterConfig config = new IndexWriterConfig(indexAnalyzer);
+		indexDocuments(docs, indexAnalyzer, index);
+		
+		// Run retrieval experiment.
+		Set<String> freqStopWords = calcTopStopWords(index, 20);
+		List<String> outputOfAllQueries = generateQuerySearchResults(queries, indexAnalyzer, index, freqStopWords);
+		
+		// Output retrieval experiment results.
+		Path outputPath = Paths.get(inputParams.getOutputFileName());
+		try {
+			Files.write(outputPath, outputOfAllQueries);
+		} catch (IOException e) {
+			// TODO handle catch block
+			e.printStackTrace();
+		}
+	}
 
+	/**
+	 * The method indexes the collection documents.
+	 * @param docs the collection of documents to index. 
+	 * @param indexAnalyzer the {@link Analyzer} used for indexing.
+	 * @param index the index implementation of {@link Directory}.
+	 */
+	private static void indexDocuments(Collection<Document> docs, Analyzer indexAnalyzer, Directory index) {
+		IndexWriterConfig config = new IndexWriterConfig(indexAnalyzer);
 		try (IndexWriter idxWriter = new IndexWriter(index, config)) {
 			for (Document doc : docs) {
 				// Index document.
@@ -102,16 +125,6 @@ public class SearchRanker {
 
 		} catch (IOException e) {
 			// TODO handle exception block.
-			e.printStackTrace();
-		}
-				
-		Set<String> freqStopWords = calcTopStopWords(index, 20);
-		List<String> outputOfAllQueries = generateQuerySearchResults(queries, indexAnalyzer, index, freqStopWords);		
-		Path outputPath = Paths.get(inputParams.getOutputFileName());
-		try {
-			Files.write(outputPath, outputOfAllQueries);
-		} catch (IOException e) {
-			// TODO handle catch block
 			e.printStackTrace();
 		}
 	}
