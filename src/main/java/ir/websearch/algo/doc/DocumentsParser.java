@@ -14,6 +14,7 @@ public class DocumentsParser {
 	private static final String DOC_SEPERATOR = new String(new char[] { 127 });
 	private static final String DOC_PREFIX = ".I";
 	private static final String TEXT_PREFIX = ".W";
+	private static final String REMOVE_CHARS_REGEX = "[^-A-Za-z0-9\\s]";
 	
 	private final String docsFile;
 	
@@ -28,6 +29,7 @@ public class DocumentsParser {
 		try {
 			String docsJoin = FileUtils.readFileToString(file);
 			docsJoin = docsJoin.replace(DOC_PREFIX, DOC_SEPERATOR);
+			docsJoin = docsJoin.trim();
 			String[] docs = docsJoin.split("(?=" + DOC_SEPERATOR + ")");
 			for (String doc : docs) {
 				Document.Builder docBuilder = new Builder();
@@ -39,10 +41,17 @@ public class DocumentsParser {
 				String textPart = idTextSplit[1];
 				String[] titelAbstructSplit = textPart.split("\\.", 2);
 				String title = titelAbstructSplit[0];
+				title = StringUtils.whitespacesToSingleSpace(title);
+				title = StringUtils.removeRedundantChars(title, REMOVE_CHARS_REGEX);
 				docBuilder.title(title);
 				
 				String abst = titelAbstructSplit[1];
+				abst = StringUtils.whitespacesToSingleSpace(abst);
+				abst = StringUtils.removeRedundantChars(abst, REMOVE_CHARS_REGEX);
 				docBuilder.abst(abst);
+				
+				String text = title + " " + abst;
+				docBuilder.text(text);
 				
 				documents.add(docBuilder.build());
 			}

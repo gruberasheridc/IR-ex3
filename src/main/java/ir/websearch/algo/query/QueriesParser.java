@@ -14,6 +14,7 @@ public class QueriesParser {
 	private static final String QUERY_SEPERATOR = new String(new char[] { 127 });
 	private static final String QUERY_PREFIX = ".I";
 	private static final String TEXT_PREFIX = ".W";
+	private static final String REMOVE_CHARS_REGEX = "[^-A-Za-z0-9\\s]";
 	
 	private final String queriesFile;
 	
@@ -28,6 +29,7 @@ public class QueriesParser {
 		try {
 			String queriesJoin = FileUtils.readFileToString(file);
 			queriesJoin = queriesJoin.replace(QUERY_PREFIX, QUERY_SEPERATOR);
+			queriesJoin = queriesJoin.trim();
 			String[] rawQueries = queriesJoin.split("(?=" + QUERY_SEPERATOR + ")");
 			for (String doc : rawQueries) {
 				Query.Builder queryBuilder = new Builder();
@@ -37,6 +39,8 @@ public class QueriesParser {
 				queryBuilder.id(docID);
 				
 				String textPart = idTextSplit[1];
+				textPart = StringUtils.whitespacesToSingleSpace(textPart);
+				textPart = StringUtils.removeRedundantChars(textPart, REMOVE_CHARS_REGEX);
 				queryBuilder.query(textPart);
 				
 				queries.add(queryBuilder.build());

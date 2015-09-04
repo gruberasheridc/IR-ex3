@@ -144,9 +144,9 @@ public class SearchRanker {
 		final CharArraySet queryStopWords = calcStopWordsForQueryAnalyzer(indexAnalyzer, freqStopWords);
 		Analyzer queyrAnalyzer = new StandardAnalyzer(queryStopWords);
 		try (IndexReader idxReader = DirectoryReader.open(index)) {
-			IndexSearcher searcher = new IndexSearcher(idxReader);
-			TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
+			IndexSearcher searcher = new IndexSearcher(idxReader);			
 			for (Query query : queries) {
+				TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 				List<String> queryOutput = generateQueryOutput(queyrAnalyzer, searcher, collector, query);				
 				outputOfAllQueries.addAll(queryOutput);
 			}

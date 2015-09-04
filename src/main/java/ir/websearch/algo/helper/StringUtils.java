@@ -46,5 +46,24 @@ public class StringUtils {
 		
 		return firtsMatch;
 	}
+	
+	/**
+	 * The method removes redundant characters from the given text according to the given regex.
+	 * @param text the text for whom to remove the redundant characters. 
+	 * @param regex the regex representing characters to remove.
+	 * @return the given text without the redundant characters.
+	 */
+	public static String removeRedundantChars(String text, String regex) { 		
+		return text.replaceAll(regex, "");
+	}
+	
+	/**
+	 * The method replaces 2 or more spaces with single space in string and delete leading spaces.
+	 * @param text the text for whom to modify the whitespace.
+	 * @return the modified text.
+	 */
+	public static String whitespacesToSingleSpace(String text) {
+		return text.trim().replaceAll("\\s+", " ");
+	}
 
 }
