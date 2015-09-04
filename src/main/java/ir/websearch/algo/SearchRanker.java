@@ -7,7 +7,9 @@ import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.StopAnalyzer;
@@ -120,8 +123,8 @@ public class SearchRanker {
 	 * @param freqStopWords a set of top stop words from the collection (most frequent).
 	 * @return query search results in printable format.
 	 */
-	private static List<String> generateQuerySearchResults(Collection<Query> queries, Analyzer indexAnalyzer, Directory index,
-			Set<String> freqStopWords) {
+	private static List<String> generateQuerySearchResults(Collection<Query> queries, Analyzer indexAnalyzer, 
+			Directory index, Set<String> freqStopWords) {
 		int hitsPerPage = 10;
 		List<String> outputOfAllQueries = new ArrayList<String>();
 		final CharArraySet queryStopWords = calcStopWordsForQueryAnalyzer(indexAnalyzer, freqStopWords);
@@ -134,10 +137,24 @@ public class SearchRanker {
 				IndexSearcher searcher = new IndexSearcher(idxReader);
 				TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 				searcher.search(q, collector);
-				ScoreDoc[] hits = collector.topDocs().scoreDocs;
-				System.out.println("Found " + hits.length + " hits.");
+				ScoreDoc[] scoreDocs = collector.topDocs().scoreDocs;
+				System.out.println("Found " + scoreDocs.length + " hits.");
 
 				List<String> queryOutput = new ArrayList<String>();
+				List<ScoreDoc> hits = Arrays.asList(scoreDocs);
+				List<ImmutablePair<Integer, Float>> sortedHits = hits.stream().
+					map(scoreDoc -> 
+							{
+								int docId = scoreDoc.doc;								
+								org.apache.lucene.document.Document document = searcher.doc(docId);
+								Integer extlDocID = Integer.parseInt(document.get(Document.ID_FIELD));
+								Float score = scoreDoc.score;
+								return new ImmutablePair<Integer, Float>(extlDocID, score);
+							})
+					.sorted(Comparator.comparing(keyExtractor, keyComparator)))
+								.thenComparing(Comparator.comparingInt(scoreDoc -> scorDoc.getLeft())))
+					.collect(Collectors.toList());
+				
 				for (ScoreDoc scoreDoc : hits) {
 					int docId = scoreDoc.doc;					
 					float score = scoreDoc.score;
