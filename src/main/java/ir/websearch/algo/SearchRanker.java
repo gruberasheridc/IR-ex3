@@ -17,7 +17,10 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.util.CharArraySet;
+import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.TextField;
@@ -41,6 +44,7 @@ import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.CollectionUtil;
 
 import ir.websearch.algo.doc.Document;
 import ir.websearch.algo.doc.DocumentsParser;
@@ -82,9 +86,9 @@ public class SearchRanker {
 		}
 
 		// Index documents to lucene.
-		Analyzer analyzer = new StandardAnalyzer();
+		Analyzer indexAnalyzer = new StandardAnalyzer();
 		Directory index = new RAMDirectory();
-		IndexWriterConfig config = new IndexWriterConfig(analyzer);
+		IndexWriterConfig config = new IndexWriterConfig(indexAnalyzer);
 
 		try (IndexWriter idxWriter = new IndexWriter(index, config)) {
 			for (Document doc : docs) {
@@ -98,15 +102,17 @@ public class SearchRanker {
 		}
 		
 		// Calculate stop words from the indexed document collection.
-		Set<String> stopWords = calcTopStopWords(index, 20);
+		Set<String> freqStopWords = calcTopStopWords(index, 20);
 
 		// Generate lucene queries and execute search.
 		int hitsPerPage = 10;
 		List<String> outputOfAllQueries = new ArrayList<String>();
 		for (Query query : queries) {
-			List<String> queryOutput = new ArrayList<String>();			
+			List<String> queryOutput = new ArrayList<String>();
 			try {
-				QueryParser parser = new QueryParser(Document.TITLE_FIELD, analyzer);
+				final CharArraySet queryStopWords = calcStopWordsForQueryAnalyzer(indexAnalyzer, freqStopWords);
+				Analyzer queyrAnalyzer = new StandardAnalyzer(queryStopWords);
+				QueryParser parser = new QueryParser(Document.TITLE_FIELD, queyrAnalyzer);
 				org.apache.lucene.search.Query q = parser.parse(query.getQuery());
 				IndexReader idxReader = DirectoryReader.open(index);
 				IndexSearcher searcher = new IndexSearcher(idxReader);
@@ -146,6 +152,21 @@ public class SearchRanker {
 			// TODO handle catch block
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * The method generates a stop words set for the query search analyzer.
+	 * We will want the stop words list to include the stop words of the analyzer which was used for the indexing,
+	 * but we will want to add to them the stop words we calculated from the collection. 
+	 * @param idxAnalyzer the index used for the collection indexing.
+	 * @param freqStopWords most frequent words in the collection.
+	 * @return a join stop words set (index analyzer + frequent collection words).
+	 */
+	private static CharArraySet calcStopWordsForQueryAnalyzer(Analyzer idxAnalyzer, Set<String> freqStopWords) {
+		final CharArraySet calcStopWords = new CharArraySet(freqStopWords, false);
+		final CharArraySet indexAnalyzeStopWords = ((StopwordAnalyzerBase) idxAnalyzer).getStopwordSet();				
+		org.apache.commons.collections4.CollectionUtils.addAll(calcStopWords, indexAnalyzeStopWords);
+		return calcStopWords;
 	}
 
 	private static Set<String> calcTopStopWordsSelf(Directory index, int top) {
