@@ -100,51 +100,9 @@ public class SearchRanker {
 			// TODO handle exception block.
 			e.printStackTrace();
 		}
-		
-		// Calculate stop words from the indexed document collection.
+				
 		Set<String> freqStopWords = calcTopStopWords(index, 20);
-
-		// Generate lucene queries and execute search.
-		int hitsPerPage = 10;
-		List<String> outputOfAllQueries = new ArrayList<String>();
-		for (Query query : queries) {
-			List<String> queryOutput = new ArrayList<String>();
-			try {
-				final CharArraySet queryStopWords = calcStopWordsForQueryAnalyzer(indexAnalyzer, freqStopWords);
-				Analyzer queyrAnalyzer = new StandardAnalyzer(queryStopWords);
-				QueryParser parser = new QueryParser(Document.TITLE_FIELD, queyrAnalyzer);
-				org.apache.lucene.search.Query q = parser.parse(query.getQuery());
-				IndexReader idxReader = DirectoryReader.open(index);
-				IndexSearcher searcher = new IndexSearcher(idxReader);
-				TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
-				searcher.search(q, collector);
-				ScoreDoc[] hits = collector.topDocs().scoreDocs;
-
-				System.out.println("Found " + hits.length + " hits.");								
-				for (ScoreDoc scoreDoc : hits) {
-					int docId = scoreDoc.doc;					
-					float score = scoreDoc.score;
-					org.apache.lucene.document.Document document = searcher.doc(docId);
-					System.out.println("DocID: " + docId + "\t" + "Doc Score: " + score + "\t" + 
-									   "DocID: " + document.get("id") + "\t" + "Doc Title: " + document.get("title") + "\t" + 
-									   "Doc Abstruct: " + document.get("abstruct"));
-					String outputLine = "q" + query.getId() + "," + "doc" + document.get("id") + "," + score;
-					queryOutput.add(outputLine);
-				}
-			} catch (ParseException | IOException e) {
-				// TODO handle exception block.
-				e.printStackTrace();
-			}
-			
-			if (CollectionUtils.isEmpty(queryOutput)) {
-				// No documents are retrieved for a query. Create dummy output.
-				String dummayOutputLine = "q" + query.getId() + "," + "dummy" + "," + 1;
-				queryOutput.add(dummayOutputLine);
-			}
-			
-			outputOfAllQueries.addAll(queryOutput);
-		}
-		
+		List<String> outputOfAllQueries = generateQuerySearchResults(queries, indexAnalyzer, index, freqStopWords);		
 		Path outputPath = Paths.get(inputParams.getOutputFileName());
 		try {
 			Files.write(outputPath, outputOfAllQueries);
@@ -152,6 +110,58 @@ public class SearchRanker {
 			// TODO handle catch block
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * The method generate lucene queries and execute search. 
+	 * @param queries the search query.
+	 * @param idxAnalyzer the index used for the collection indexing.
+	 * @param index the collection index to search.
+	 * @param freqStopWords a set of top stop words from the collection (most frequent).
+	 * @return query search results in printable format.
+	 */
+	private static List<String> generateQuerySearchResults(Collection<Query> queries, Analyzer indexAnalyzer, Directory index,
+			Set<String> freqStopWords) {
+		int hitsPerPage = 10;
+		List<String> outputOfAllQueries = new ArrayList<String>();
+		final CharArraySet queryStopWords = calcStopWordsForQueryAnalyzer(indexAnalyzer, freqStopWords);
+		Analyzer queyrAnalyzer = new StandardAnalyzer(queryStopWords);
+		try (IndexReader idxReader = DirectoryReader.open(index)) {
+			for (Query query : queries) {
+				// Submit the query: for each query term, fetch the inverted list from the index.
+				QueryParser parser = new QueryParser(Document.TITLE_FIELD, queyrAnalyzer);
+				org.apache.lucene.search.Query q = parser.parse(query.getQuery());
+				IndexSearcher searcher = new IndexSearcher(idxReader);
+				TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
+				searcher.search(q, collector);
+				ScoreDoc[] hits = collector.topDocs().scoreDocs;
+				System.out.println("Found " + hits.length + " hits.");
+
+				List<String> queryOutput = new ArrayList<String>();
+				for (ScoreDoc scoreDoc : hits) {
+					int docId = scoreDoc.doc;					
+					float score = scoreDoc.score;
+					org.apache.lucene.document.Document document = searcher.doc(docId);
+					System.out.println("DocID: " + docId + "\t" + "Doc Score: " + score + "\t" + 
+							"DocID: " + document.get("id") + "\t" + "Doc Title: " + document.get("title") + "\t" + 
+							"Doc Abstruct: " + document.get("abstruct"));
+					String outputLine = "q" + query.getId() + "," + "doc" + document.get("id") + "," + score;
+					queryOutput.add(outputLine);
+				}
+				
+				if (CollectionUtils.isEmpty(queryOutput)) {
+					// No documents are retrieved for a query. Create dummy output.
+					String dummayOutputLine = "q" + query.getId() + "," + "dummy" + "," + 1;
+					queryOutput.add(dummayOutputLine);
+				}
+				
+				outputOfAllQueries.addAll(queryOutput);
+			}
+		} catch (ParseException | IOException e) {
+			// TODO handle exception block.
+			e.printStackTrace();
+		}
+		return outputOfAllQueries;
 	}
 
 	/**
@@ -198,6 +208,12 @@ public class SearchRanker {
 	    return stopWords;
 	}
 	
+	/**
+	 * The method calculates stop words from the indexed document collection.
+	 * @param index the index from whom to derive stop words.
+	 * @param top the amount of desired stop words.
+	 * @return a set of top stop words.
+	 */
 	private static Set<String> calcTopStopWords(Directory index, int top) {
 		Set<String> stopWords = new HashSet<>(); 
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
