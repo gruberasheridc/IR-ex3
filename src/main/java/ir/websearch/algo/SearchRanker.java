@@ -43,6 +43,7 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
@@ -130,55 +131,92 @@ public class SearchRanker {
 		final CharArraySet queryStopWords = calcStopWordsForQueryAnalyzer(indexAnalyzer, freqStopWords);
 		Analyzer queyrAnalyzer = new StandardAnalyzer(queryStopWords);
 		try (IndexReader idxReader = DirectoryReader.open(index)) {
+			IndexSearcher searcher = new IndexSearcher(idxReader);
+			TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 			for (Query query : queries) {
-				// Submit the query: for each query term, fetch the inverted list from the index.
-				QueryParser parser = new QueryParser(Document.TITLE_FIELD, queyrAnalyzer);
-				org.apache.lucene.search.Query q = parser.parse(query.getQuery());
-				IndexSearcher searcher = new IndexSearcher(idxReader);
-				TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
-				searcher.search(q, collector);
-				ScoreDoc[] scoreDocs = collector.topDocs().scoreDocs;
-				System.out.println("Found " + scoreDocs.length + " hits.");
-
-				List<String> queryOutput = new ArrayList<String>();
-				List<ScoreDoc> hits = Arrays.asList(scoreDocs);
-				List<ImmutablePair<Integer, Float>> sortedHits = hits.stream().
-					map(scoreDoc -> 
-							{
-								int docId = scoreDoc.doc;								
-								org.apache.lucene.document.Document document = searcher.doc(docId);
-								Integer extlDocID = Integer.parseInt(document.get(Document.ID_FIELD));
-								Float score = scoreDoc.score;
-								return new ImmutablePair<Integer, Float>(extlDocID, score);
-							})
-					.sorted(Comparator.comparing(keyExtractor, keyComparator)))
-								.thenComparing(Comparator.comparingInt(scoreDoc -> scorDoc.getLeft())))
-					.collect(Collectors.toList());
-				
-				for (ScoreDoc scoreDoc : hits) {
-					int docId = scoreDoc.doc;					
-					float score = scoreDoc.score;
-					org.apache.lucene.document.Document document = searcher.doc(docId);
-					System.out.println("DocID: " + docId + "\t" + "Doc Score: " + score + "\t" + 
-							"DocID: " + document.get("id") + "\t" + "Doc Title: " + document.get("title") + "\t" + 
-							"Doc Abstruct: " + document.get("abstruct"));
-					String outputLine = "q" + query.getId() + "," + "doc" + document.get("id") + "," + score;
-					queryOutput.add(outputLine);
-				}
-				
-				if (CollectionUtils.isEmpty(queryOutput)) {
-					// No documents are retrieved for a query. Create dummy output.
-					String dummayOutputLine = "q" + query.getId() + "," + "dummy" + "," + 1;
-					queryOutput.add(dummayOutputLine);
-				}
-				
+				List<String> queryOutput = generateQueryOutput(queyrAnalyzer, searcher, collector, query);				
 				outputOfAllQueries.addAll(queryOutput);
 			}
 		} catch (ParseException | IOException e) {
 			// TODO handle exception block.
 			e.printStackTrace();
 		}
+		
 		return outputOfAllQueries;
+	}
+
+	/**
+	 * The method fetches the inverted list from the index for the given query.
+	 * Afterwards the matching documents are sorted by their tf-idf scores and document ID and given a rank.
+	 * Finally, the method generates a line for each Query, Doc, Rank triplet.   
+	 * @param queyrAnalyzer the query search analyzer.
+	 * @param searcher the query index searcher.
+	 * @param collector the query collector.
+	 * @param query the query to search.
+	 * @return list of output lines. A line for each Query, Doc, Rank triplet.
+	 * @throws ParseException
+	 * @throws IOException
+	 */
+	private static List<String> generateQueryOutput(Analyzer queyrAnalyzer, IndexSearcher searcher,
+			TopScoreDocCollector collector, Query query) throws ParseException, IOException {
+		QueryParser parser = new QueryParser(Document.TITLE_FIELD, queyrAnalyzer);
+		org.apache.lucene.search.Query q = parser.parse(query.getQuery());
+		searcher.search(q, collector);
+		ScoreDoc[] scoreDocs = collector.topDocs().scoreDocs;
+		System.out.println("Found " + scoreDocs.length + " hits.");
+
+		List<String> queryOutput = new ArrayList<String>();
+		List<ImmutablePair<Integer, Float>> sortedHits = sortSearchHits(searcher, scoreDocs);
+		for (ImmutablePair<Integer, Float> scoreDoc : sortedHits) {
+			String outputLine = "q" + query.getId() + "," + "doc" + scoreDoc.getKey() + "," + scoreDoc.getValue();
+			queryOutput.add(outputLine);
+		}
+		
+		if (CollectionUtils.isEmpty(queryOutput)) {
+			// No documents are retrieved for a query. Create dummy output.
+			String dummayOutputLine = "q" + query.getId() + "," + "dummy" + "," + 1;
+			queryOutput.add(dummayOutputLine);
+		}
+		return queryOutput;
+	}
+
+	/**
+	 * The method sorts the search hits.
+	 * Sorts the matching documents by their tf-idf scores, in descending order. 
+	 * The external document ID is a secondary sort key (i.e., for breaking ties), in ascending order.
+	 * @param searcher the index searcher.
+	 * @param scoreDocs the query hits.
+	 * @return a list of sorted Document ID, Document Score pairs (List<ImmutablePair<DocID, Score>>). 
+	 */
+	private static List<ImmutablePair<Integer, Float>> sortSearchHits(IndexSearcher searcher, ScoreDoc[] scoreDocs) {
+		List<ScoreDoc> hits = Arrays.asList(scoreDocs);
+		Comparator<ImmutablePair<Integer, Float>> docScoreCmp = createDocScoreComparator();
+		List<ImmutablePair<Integer, Float>> sortedHits = hits.stream().
+			map(scoreDoc -> 
+					{
+						int docId = scoreDoc.doc;								
+						org.apache.lucene.document.Document document = null;
+						try {
+							document = searcher.doc(docId);
+						} catch (Exception e) {
+							// TODO handle catch block.
+							e.printStackTrace();
+						}
+						
+						Integer extlDocID = Integer.parseInt(document.get(Document.ID_FIELD));
+						Float score = scoreDoc.score;
+						return new ImmutablePair<Integer, Float>(extlDocID, score);
+					})
+			.sorted(docScoreCmp)
+			.collect(Collectors.toList());
+		
+		return sortedHits;
+	}
+
+	private static Comparator<ImmutablePair<Integer, Float>> createDocScoreComparator() {
+		Comparator<ImmutablePair<Integer, Float>> docScoreCmp = (ds1, ds2) -> ds2.getRight().compareTo(ds1.getRight()); // Sort the matching documents by their tf-idf scores (descending order).
+		docScoreCmp.thenComparing((ds1, ds2) -> ds1.getLeft().compareTo(ds2.getLeft())); // External document ID should be a secondary sort key (ascending order).
+		return docScoreCmp;
 	}
 
 	/**
