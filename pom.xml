@@ -34,6 +34,12 @@
 			<artifactId>lucene-queryparser</artifactId>
 			<version>5.3.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-misc</artifactId>
+			<version>5.3.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

@@ -28,6 +28,10 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.misc.HighFreqTerms;
+import org.apache.lucene.misc.HighFreqTerms.DocFreqComparator;
+import org.apache.lucene.misc.HighFreqTerms.TotalTermFreqComparator;
+import org.apache.lucene.misc.TermStats;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -144,7 +148,7 @@ public class SearchRanker {
 	}
 
 	private static Set<String> calcTopStopWords(Directory index, int top) {
-		final Map<String, Integer> frequencyMap = new HashMap<String, Integer>();
+		final Map<String, Long> frequencyMap = new HashMap<>();
 	    
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
 			Fields fields = MultiFields.getFields(idxReader);
@@ -153,7 +157,7 @@ public class SearchRanker {
 	        BytesRef byteRef = null;
 	        while((byteRef = iterator.next()) != null) {
 	        	String term = byteRef.utf8ToString();
-	            int df = iterator.docFreq();
+	            long df = iterator.totalTermFreq();
 	            frequencyMap.put(term, df);
 	        }	        
 		} catch (IOException e) {
@@ -163,11 +167,28 @@ public class SearchRanker {
 	    
 	    // Get the top stop words by document frequency.
 	    Set<String> stopWords = frequencyMap.entrySet().stream()
-	    			.sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-	    			.filter(entry -> entry.getValue() > 1) // In case we do not have top words with frequency above 1 return a smaller list.
+	    			.sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+	    			//.filter(entry -> entry.getValue() > 1) // In case we do not have top words with frequency above 1 return a smaller list.
 	    			.map(entry -> entry.getKey())
 	    			.limit(top)
 	    			.collect(Collectors.toSet());
+	    
+	    try (IndexReader idxReader = DirectoryReader.open(index)) {
+	    	TotalTermFreqComparator cmp = new HighFreqTerms.TotalTermFreqComparator();
+		    TermStats[] highFreqTerms = HighFreqTerms.getHighFreqTerms(idxReader, top, "abstruct", cmp);
+
+		    Map<String, Long> terms = new HashMap<>();
+		    for (TermStats ts : highFreqTerms) {
+		    	terms.put(ts.termtext.utf8ToString(), ts.totalTermFreq);
+		    }
+		    		    
+		    System.out.println(terms);
+		} catch (Exception e) {
+			// TODO handle catch block
+			e.printStackTrace();
+		}
+	    
+	    
 	    
 	    return stopWords;
 	}
