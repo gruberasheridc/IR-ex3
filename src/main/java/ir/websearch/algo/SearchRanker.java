@@ -106,7 +106,7 @@ public class SearchRanker {
 		for (Query query : queries) {
 			List<String> queryOutput = new ArrayList<String>();			
 			try {
-				QueryParser parser = new QueryParser("title", analyzer);
+				QueryParser parser = new QueryParser(Document.TITLE_FIELD, analyzer);
 				org.apache.lucene.search.Query q = parser.parse(query.getQuery());
 				IndexReader idxReader = DirectoryReader.open(index);
 				IndexSearcher searcher = new IndexSearcher(idxReader);
@@ -153,7 +153,7 @@ public class SearchRanker {
 	    
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
 			Fields fields = MultiFields.getFields(idxReader);
-	        Terms terms = fields.terms("abstruct");
+	        Terms terms = fields.terms(Document.ABSTRACT_FIELD);
 	        TermsEnum iterator = terms.iterator();
 	        BytesRef byteRef = null;
 	        while((byteRef = iterator.next()) != null) {
@@ -181,7 +181,7 @@ public class SearchRanker {
 		Set<String> stopWords = new HashSet<>(); 
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
 	    	TotalTermFreqComparator cmp = new HighFreqTerms.TotalTermFreqComparator();
-		    TermStats[] highFreqTerms = HighFreqTerms.getHighFreqTerms(idxReader, top, "abstruct", cmp);
+		    TermStats[] highFreqTerms = HighFreqTerms.getHighFreqTerms(idxReader, top, Document.ABSTRACT_FIELD, cmp);
 		    for (TermStats ts : highFreqTerms) {
 		    	String term = ts.termtext.utf8ToString();
 				stopWords.add(term);
@@ -202,9 +202,9 @@ public class SearchRanker {
 	 */
 	private static void addDoc(IndexWriter writer, Document doc) throws IOException {
 		org.apache.lucene.document.Document document = new org.apache.lucene.document.Document();
-		document.add(new IntField("id", doc.getId(), Field.Store.YES));
-		document.add(new TextField("title", doc.getTitle(), Field.Store.YES));
-		document.add(new TextField("abstruct", doc.getAbst(), Field.Store.YES));
+		document.add(new IntField(Document.ID_FIELD, doc.getId(), Field.Store.YES));
+		document.add(new TextField(Document.TITLE_FIELD, doc.getTitle(), Field.Store.YES));
+		document.add(new TextField(Document.ABSTRACT_FIELD, doc.getAbst(), Field.Store.YES));
 		writer.addDocument(document);
 	}
 

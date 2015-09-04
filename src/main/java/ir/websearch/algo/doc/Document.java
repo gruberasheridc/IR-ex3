@@ -1,6 +1,10 @@
 package ir.websearch.algo.doc;
 
 public class Document {
+	
+	public final static String ID_FIELD = "id";
+	public final static String TITLE_FIELD = "title";
+	public final static String ABSTRACT_FIELD = "abstract";
 
 	private final Integer id;
 	private final String title;
