@@ -52,6 +52,8 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CollectionUtil;
 
 import ir.websearch.algo.core.BasicAlgorithm;
+import ir.websearch.algo.core.ISearchAlgorithm;
+import ir.websearch.algo.core.ImprovedAlgorithm;
 import ir.websearch.algo.doc.Document;
 import ir.websearch.algo.doc.DocumentsParser;
 import ir.websearch.algo.helper.CollectionUtils;
@@ -94,12 +96,14 @@ public class SearchRanker {
 			return;
 		}
 
-		BasicAlgorithm algorithm = null; 
+		// Generate the a retrieval algorithm of choice and perform search.
+		ISearchAlgorithm algorithm = null; 
 		switch (inputParams.getRetrievalAlgorithm()) {
 		case BASIC_ALGORITHM:
 			algorithm = new BasicAlgorithm(docs, queries);
 			break;
 		case IMPROVED_ALGORITHM:
+			algorithm = new ImprovedAlgorithm(docs, queries);
 			break;
 		}
 		

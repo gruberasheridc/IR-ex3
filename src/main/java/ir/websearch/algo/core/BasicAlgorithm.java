@@ -44,7 +44,7 @@ import ir.websearch.algo.doc.Document;
 import ir.websearch.algo.helper.CollectionUtils;
 import ir.websearch.algo.query.Query;
 
-public class BasicAlgorithm {
+public class BasicAlgorithm implements ISearchAlgorithm {
 	
 	private final Collection<Document> docs;
 	private final Collection<Query> queries;
@@ -94,7 +94,7 @@ public class BasicAlgorithm {
 	 * @param freqStopWords a set of top stop words from the collection (most frequent).
 	 * @return query search results in printable format.
 	 */
-	private static List<String> generateQuerySearchResults(Collection<Query> queries, Analyzer indexAnalyzer, 
+	private List<String> generateQuerySearchResults(Collection<Query> queries, Analyzer indexAnalyzer, 
 			Directory index, Set<String> freqStopWords) {
 		int hitsPerPage = 10;
 		List<String> outputOfAllQueries = new ArrayList<String>();
@@ -127,10 +127,9 @@ public class BasicAlgorithm {
 	 * @throws ParseException
 	 * @throws IOException
 	 */
-	private static List<String> generateQueryOutput(Analyzer queyrAnalyzer, IndexSearcher searcher,
+	private List<String> generateQueryOutput(Analyzer queyrAnalyzer, IndexSearcher searcher,
 			TopScoreDocCollector collector, Query query) throws ParseException, IOException {
-		QueryParser parser = new QueryParser(Document.TEXT_FIELD, queyrAnalyzer);
-		org.apache.lucene.search.Query q = parser.parse(query.getQuery());
+		org.apache.lucene.search.Query q = generateQuery(queyrAnalyzer, query);
 		searcher.search(q, collector);
 		ScoreDoc[] scoreDocs = collector.topDocs().scoreDocs;
 		System.out.println("Found " + scoreDocs.length + " hits.");
@@ -151,6 +150,12 @@ public class BasicAlgorithm {
 		}
 		
 		return queryOutput;
+	}
+
+	protected org.apache.lucene.search.Query generateQuery(Analyzer queyrAnalyzer, Query query) throws ParseException {
+		QueryParser parser = new QueryParser(Document.TEXT_FIELD, queyrAnalyzer);
+		org.apache.lucene.search.Query q = parser.parse(query.getQuery());
+		return q;
 	}
 
 	/**
@@ -242,7 +247,7 @@ public class BasicAlgorithm {
 	 * @param top the amount of desired stop words.
 	 * @return a set of top stop words.
 	 */
-	private static Set<String> calcTopStopWords(Directory index, int top) {
+	protected Set<String> calcTopStopWords(Directory index, int top) {
 		Set<String> stopWords = new HashSet<>(); 
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
 	    	TotalTermFreqComparator cmp = new HighFreqTerms.TotalTermFreqComparator();
