@@ -5,10 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,16 +19,12 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.misc.HighFreqTerms;
-import org.apache.lucene.misc.TermStats;
 import org.apache.lucene.misc.HighFreqTerms.TotalTermFreqComparator;
+import org.apache.lucene.misc.TermStats;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -38,7 +32,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.BytesRef;
 
 import ir.websearch.algo.doc.Document;
 import ir.websearch.algo.helper.CollectionUtils;
@@ -54,6 +47,7 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 		this.queries = queries;
 	}
 	
+	@Override
 	public List<String> search() {
 		// Index documents to lucene.
 		Analyzer indexAnalyzer = new StandardAnalyzer();
@@ -210,35 +204,6 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 		final CharArraySet indexAnalyzeStopWords = ((StopwordAnalyzerBase) idxAnalyzer).getStopwordSet();				
 		org.apache.commons.collections4.CollectionUtils.addAll(calcStopWords, indexAnalyzeStopWords);
 		return calcStopWords;
-	}
-
-	private static Set<String> calcTopStopWordsSelf(Directory index, int top) {
-		final Map<String, Long> frequencyMap = new HashMap<>();
-	    
-	    try (IndexReader idxReader = DirectoryReader.open(index)) {
-			Fields fields = MultiFields.getFields(idxReader);
-	        Terms terms = fields.terms(Document.ABSTRACT_FIELD);
-	        TermsEnum iterator = terms.iterator();
-	        BytesRef byteRef = null;
-	        while((byteRef = iterator.next()) != null) {
-	        	String term = byteRef.utf8ToString();
-	            long df = iterator.totalTermFreq();
-	            frequencyMap.put(term, df);
-	        }	        
-		} catch (IOException e) {
-			// TODO handle catch block
-			e.printStackTrace();
-		}
-	    
-	    // Get the top stop words by document frequency.
-	    Set<String> stopWords = frequencyMap.entrySet().stream()
-	    			.sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-	    			//.filter(entry -> entry.getValue() > 1) // In case we do not have top words with frequency above 1 return a smaller list.
-	    			.map(entry -> entry.getKey())
-	    			.limit(top)
-	    			.collect(Collectors.toSet());
-	    
-	    return stopWords;
 	}
 	
 	/**
