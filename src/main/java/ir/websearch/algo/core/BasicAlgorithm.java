@@ -132,7 +132,7 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 		List<ImmutablePair<Integer, Float>> sortedHits = sortSearchHits(searcher, scoreDocs);
 		int rank = 1;
 		for (ImmutablePair<Integer, Float> scoreDoc : sortedHits) {
-			String outputLine = "q" + query.getId() + "," + "doc" + scoreDoc.getKey() + "," + rank + "," +scoreDoc.getValue();
+			String outputLine = "q" + query.getId() + "," + "doc" + scoreDoc.getKey() + "," + rank;
 			queryOutput.add(outputLine);
 			rank++;
 		}
