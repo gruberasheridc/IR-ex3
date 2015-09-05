@@ -172,7 +172,7 @@ public class SearchRanker {
 	 */
 	private static List<String> generateQueryOutput(Analyzer queyrAnalyzer, IndexSearcher searcher,
 			TopScoreDocCollector collector, Query query) throws ParseException, IOException {
-		QueryParser parser = new QueryParser(Document.TITLE_FIELD, queyrAnalyzer);
+		QueryParser parser = new QueryParser(Document.TEXT_FIELD, queyrAnalyzer);
 		org.apache.lucene.search.Query q = parser.parse(query.getQuery());
 		searcher.search(q, collector);
 		ScoreDoc[] scoreDocs = collector.topDocs().scoreDocs;
@@ -192,6 +192,7 @@ public class SearchRanker {
 			String dummayOutputLine = "q" + query.getId() + "," + "dummy" + "," + 1;
 			queryOutput.add(dummayOutputLine);
 		}
+		
 		return queryOutput;
 	}
 
@@ -312,6 +313,7 @@ public class SearchRanker {
 		document.add(new IntField(Document.ID_FIELD, doc.getId(), Field.Store.YES));
 		document.add(new TextField(Document.TITLE_FIELD, doc.getTitle(), Field.Store.YES));
 		document.add(new TextField(Document.ABSTRACT_FIELD, doc.getAbst(), Field.Store.YES));
+		document.add(new TextField(Document.TEXT_FIELD, doc.getText(), Field.Store.YES));
 		writer.addDocument(document);
 	}
 
