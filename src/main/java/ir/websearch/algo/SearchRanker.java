@@ -63,14 +63,17 @@ public class SearchRanker {
 		}
 		
 		List<String> outputOfAllQueries = algorithm.search();
+		if (outputOfAllQueries == null) {
+			System.out.println("Faild to search the collection.");
+			return;
+		}
 		
 		// Output retrieval experiment results.
 		Path outputPath = Paths.get(inputParams.getOutputFileName());
 		try {
 			Files.write(outputPath, outputOfAllQueries);
 		} catch (IOException e) {
-			// TODO handle catch block
-			e.printStackTrace();
+			System.out.println("Faild to write output file name: " + inputParams.getOutputFileName() + ".");
 		}
 	}
 

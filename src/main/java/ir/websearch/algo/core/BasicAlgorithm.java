@@ -49,14 +49,22 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 	
 	@Override
 	public List<String> search() {
-		// Index documents to lucene.
-		Analyzer indexAnalyzer = new StandardAnalyzer();
-		Directory index = new RAMDirectory();
-		indexDocuments(docs, indexAnalyzer, index);
+		List<String> outputOfAllQueries = null;
 		
-		// Run retrieval experiment.
-		Set<String> freqStopWords = calcTopStopWords(index, 20);
-		List<String> outputOfAllQueries = generateQuerySearchResults(queries, indexAnalyzer, index, freqStopWords);
+		try {
+			// Index documents to lucene.
+			Analyzer indexAnalyzer = new StandardAnalyzer();
+			Directory index = new RAMDirectory();
+			indexDocuments(docs, indexAnalyzer, index);
+			
+			// Run retrieval experiment.
+			Set<String> freqStopWords = calcTopStopWords(index, 20);
+			outputOfAllQueries = generateQuerySearchResults(queries, indexAnalyzer, index, freqStopWords);
+		} catch (Exception e) {
+			System.out.println("Faild to search the collection.");
+			outputOfAllQueries = null;
+		}
+		
 		return outputOfAllQueries;
 	}
 	
@@ -65,8 +73,9 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 	 * @param docs the collection of documents to index. 
 	 * @param indexAnalyzer the {@link Analyzer} used for indexing.
 	 * @param index the index implementation of {@link Directory}.
+	 * @throws IOException 
 	 */
-	private static void indexDocuments(Collection<Document> docs, Analyzer indexAnalyzer, Directory index) {
+	private static void indexDocuments(Collection<Document> docs, Analyzer indexAnalyzer, Directory index) throws IOException {
 		IndexWriterConfig config = new IndexWriterConfig(indexAnalyzer);
 		try (IndexWriter idxWriter = new IndexWriter(index, config)) {
 			for (Document doc : docs) {
@@ -75,8 +84,7 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 			}
 
 		} catch (IOException e) {
-			// TODO handle exception block.
-			e.printStackTrace();
+			throw e;
 		}
 	}
 
@@ -87,9 +95,10 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 	 * @param index the collection index to search.
 	 * @param freqStopWords a set of top stop words from the collection (most frequent).
 	 * @return query search results in printable format.
+	 * @throws Exception 
 	 */
 	private List<String> generateQuerySearchResults(Collection<Query> queries, Analyzer indexAnalyzer, 
-			Directory index, Set<String> freqStopWords) {
+			Directory index, Set<String> freqStopWords) throws Exception {
 		int hitsPerPage = 10;
 		List<String> outputOfAllQueries = new ArrayList<String>();
 		final CharArraySet queryStopWords = calcStopWordsForQueryAnalyzer(indexAnalyzer, freqStopWords);
@@ -102,8 +111,7 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 				outputOfAllQueries.addAll(queryOutput);
 			}
 		} catch (ParseException | IOException e) {
-			// TODO handle exception block.
-			e.printStackTrace();
+			throw e;
 		}
 		
 		return outputOfAllQueries;
@@ -171,8 +179,7 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 						try {
 							document = searcher.doc(docId);
 						} catch (Exception e) {
-							// TODO handle catch block.
-							e.printStackTrace();
+							System.out.println("Faild to extract document from Doc ID: " + docId);
 						}
 						
 						Integer extlDocID = Integer.parseInt(document.get(Document.ID_FIELD));
@@ -211,8 +218,9 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 	 * @param index the index from whom to derive stop words.
 	 * @param top the amount of desired stop words.
 	 * @return a set of top stop words.
+	 * @throws Exception
 	 */
-	protected Set<String> calcTopStopWords(Directory index, int top) {
+	protected Set<String> calcTopStopWords(Directory index, int top) throws Exception {
 		Set<String> stopWords = new HashSet<>(); 
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
 	    	TotalTermFreqComparator cmp = new HighFreqTerms.TotalTermFreqComparator();
@@ -222,8 +230,7 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 				stopWords.add(term);
 		    }
 		} catch (Exception e) {
-			// TODO handle catch block
-			e.printStackTrace();
+			throw e;
 		}
 	    
 	    return stopWords;
