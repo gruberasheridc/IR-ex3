@@ -224,7 +224,7 @@ public class BasicAlgorithm implements ISearchAlgorithm {
 		Set<String> stopWords = new HashSet<>(); 
 	    try (IndexReader idxReader = DirectoryReader.open(index)) {
 	    	TotalTermFreqComparator cmp = new HighFreqTerms.TotalTermFreqComparator();
-		    TermStats[] highFreqTerms = HighFreqTerms.getHighFreqTerms(idxReader, top, Document.ABSTRACT_FIELD, cmp);
+		    TermStats[] highFreqTerms = HighFreqTerms.getHighFreqTerms(idxReader, top, Document.TEXT_FIELD, cmp);
 		    for (TermStats ts : highFreqTerms) {
 		    	String term = ts.termtext.utf8ToString();
 				stopWords.add(term);
